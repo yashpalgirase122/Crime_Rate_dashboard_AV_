@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Crime Dashboard - Anomalies</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .anomaly-card { background: rgba(15, 23, 42, 0.8); border-left: 4px solid var(--danger); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+        .anomaly-card.high { border-left-color: var(--warning); }
+        .anomaly-title { font-weight: bold; margin-bottom: 0.5rem; display: flex; justify-content: space-between; }
+        .badge { padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; }
+        .badge.critical { background: rgba(239,68,68,0.2); color: var(--danger); border: 1px solid var(--danger); }
+        .badge.high { background: rgba(245,158,11,0.2); color: var(--warning); border: 1px solid var(--warning); }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-logo">Crime AI</div>
+            <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+            <a href="{{ url_for('chatbot') }}" class="nav-link">AI Chatbot</a>
+            <a href="{{ url_for('anomalies') }}" class="nav-link active">Suspicious Activity</a>
+            {% if session.role == 'admin' %}
+            <a href="{{ url_for('admin') }}" class="nav-link" style="color:var(--warning)">Admin Panel</a>
+            {% endif %}
+            <div style="margin-top:auto"></div>
+            <a href="{{ url_for('logout') }}" class="nav-link" style="color:var(--danger)">Logout</a>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header" style="justify-content: flex-start; gap: 1rem;">
+                <h1 class="danger-text" style="animation: pulse 2s infinite;">⚠ SUSPICIOUS ACTIVITY</h1>
+                <span class="badge critical" style="font-size:1rem;">THREAT LEVEL: HIGH</span>
+            </div>
+
+            <div class="grid-container">
+                <div class="stat-card" style="border-top: 2px solid var(--danger)">
+                    <div class="stat-title">Detected Spikes</div>
+                    <div class="stat-value">3 <span style="font-size: 1rem; color: var(--danger);">+200%</span></div>
+                </div>
+                <div class="stat-card" style="border-top: 2px solid var(--warning)">
+                    <div class="stat-title">Most Suspicious Area</div>
+                    <div class="stat-value" style="font-size: 1.5rem;">Downtown East</div>
+                </div>
+                <div class="stat-card" style="border-top: 2px solid var(--success)">
+                    <div class="stat-title">AI Confidence</div>
+                    <div class="stat-value" id="ai-confidence" style="color: var(--success)">--%</div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="chart-container">
+                    <div class="chart-header">AI Generated Warning Alerts</div>
+                    <div id="alerts-container">
+                        <!-- Alerts will load here -->
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    <script>
+        async function loadAnomalies() {
+            try {
+                const res = await fetch('/api/anomalies');
+                const data = await res.json();
+                
+                document.getElementById('ai-confidence').innerText = data.summary_score + '%';
+                
+                const container = document.getElementById('alerts-container');
+                container.innerHTML = '';
+                
+                data.anomalies.forEach(anom => {
+                    const card = document.createElement('div');
+                    card.className = `anomaly-card ${anom.risk_level === 'HIGH' ? 'high' : ''}`;
+                    card.innerHTML = `
+                        <div class="anomaly-title">
+                            <span>${anom.type}: ${anom.category}</span>
+                            <span class="badge ${anom.risk_level === 'CRITICAL' ? 'critical' : 'high'}">${anom.risk_level}</span>
+                        </div>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top:0.5rem;">Location: <span style="color: white;">${anom.zone}</span></p>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem;">Increase: <span style="color: ${anom.risk_level === 'CRITICAL' ? 'var(--danger)' : 'var(--warning)'}; font-weight: bold;">${anom.increase}</span> vs historical average</p>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (e) {
+                console.error("Error loading anomalies");
+            }
+        }
+        
+        loadAnomalies();
+    </script>
+</body>
+</html>
